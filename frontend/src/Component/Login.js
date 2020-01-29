@@ -3,7 +3,7 @@ import axios from 'axios';
 import cookie from 'react-cookies';
 const headers = {
     'Content-Type': 'application/json',
-    'Authorization' : "Bearer "+ cookie.load('access-token')
+    'Authorization': "Bearer " + cookie.load('access-token')
 };
 const data = {
     accessToken: cookie.load('access-token')
@@ -13,15 +13,15 @@ class Login extends Component {
         super(props)
 
         this.state = {
-                checked_email: false,
-                accessToken: cookie.load('access-token')
+            checked_email: false,
+            accessToken: cookie.load('access-token')
         }
-        
+
     }
-    
+
     handleChange = (e) => {
         this.setState({
-            [e.target.name] : e.target.value,
+            [e.target.name]: e.target.value,
         })
     }
 
@@ -52,15 +52,15 @@ class Login extends Component {
     logout = () => {
         const headers = {
             'Content-Type': 'application/json',
-            'Authorization' : "Bearer "+ cookie.load('access-token')
+            'Authorization': "Bearer " + cookie.load('access-token')
         };
         axios.post("http://localhost:8080/newuser/out", data, {
-         headers: headers
+            headers: headers
         }).then(res => {
             window.location.reload();
         }).catch(e => {
-        console.log(e);
-        }) 
+            console.log(e);
+        })
     }
 
     /*
@@ -93,52 +93,54 @@ class Login extends Component {
 
     handleLogin = (e) => {
         e.preventDefault();
-        axios.post("http://localhost:8080/login", 
-        { username: this.state.username,
-          password: this.state.password}
-    )
-    .then(res => {
-        console.log(res);
-        cookie.save('access-token', res.data.accessToken, { path: '/' })
-        cookie.save('refresh-token', res.data.refreshToken, { path: '/' })    
-        window.location.reload();
+        axios.post("http://localhost:8080/auth/login",
+            {
+                username: this.state.username,
+                password: this.state.password
+            }
+        )
+            .then(res => {
+                console.log(res);
+                cookie.save('access-token', res.data.accessToken, { path: '/' })
+                cookie.save('refresh-token', res.data.refreshToken, { path: '/' })
+                //window.location.reload();
+            }
+            ).catch(e => {
+                console.log(e);
+            })
     }
-    ).catch(e => {
-        console.log(e);
-    })
-    }
-  
-    findPassword = (e) => {}
+
+    findPassword = (e) => { }
 
     render() {
         return (
             <React.Fragment>
                 Login Page!
             {this.state.isNormal ?
-            <div>
-                {this.state.username} 님 환영합니다. 
+                    <div>
+                        {this.state.username} 님 환영합니다.
                 <button onClick={this.logout}> 로그아웃</button>
-            </div>
-            :
-                <form onSubmit={this.handleLogin}>
-                    Username
-                    <input 
-                        value={this.state.username}
-                        name="username"
-                        onChange={this.handleChange}
-                    />
-                    <br />
-                    Password
-                <input 
-                        type="password"
-                        name="password"
-                        value={this.state.password}
-                        onChange={this.handleChange}
-                    />
-                <div><button type="submit" >로그인하기</button></div>
-                </form>
-                
-            }
+                    </div>
+                    :
+                    <form onSubmit={this.handleLogin}>
+                        Username
+                    <input
+                            value={this.state.username}
+                            name="username"
+                            onChange={this.handleChange}
+                        />
+                        <br />
+                        Password
+                <input
+                            type="password"
+                            name="password"
+                            value={this.state.password}
+                            onChange={this.handleChange}
+                        />
+                        <div><button type="submit" >로그인하기</button></div>
+                    </form>
+
+                }
             </React.Fragment>
         )
     }
