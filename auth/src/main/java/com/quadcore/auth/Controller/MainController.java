@@ -163,16 +163,21 @@ public class MainController {
         return map;
     }
 
+
     @Transactional
     @PostMapping(path="/admin/deleteuser")
     public Map<String, Object> deleteUser (@RequestBody Map<String, String> m) {
         Map<String, Object> map = new HashMap<>();
-        logger.info("delete user: " + m.get("username"));
-        Long result = accountRepository.deleteByUsername(m.get("username"));
+        String username = m.get("username");
+        Long result = accountRepository.deleteByUsername(username);
         logger.info("delete result: " + result);
+
+        redisTemplate.delete(username);
         map.put("errorCode", 10);
         return map;
     }
+
+
 
     @GetMapping(path="/admin/getusers")
     public Map<String, Object> getAllUsers() {

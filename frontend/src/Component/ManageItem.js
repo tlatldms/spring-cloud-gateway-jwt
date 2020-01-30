@@ -25,8 +25,11 @@ class ManageItem extends Component {
         axios.post("http://localhost:8080/admin/deleteuser", data, {
             headers: headers
         }).then(res => {
-            console.log(res);
-            window.location.reload();
+            if (res.data.errorCode == 10) {
+                window.location.reload();
+            }
+            else console.log(res);
+            
         }
         ).catch(e => {
             console.log(e);
