@@ -1,5 +1,6 @@
 package com.quadcore.gw2;
 
+import com.quadcore.gw2.jwt.JwtRequestFilter;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.gateway.handler.RoutePredicateHandlerMapping;
@@ -35,7 +36,7 @@ public class Gw2Application {
 
 
     @Bean
-    public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
+    public RouteLocator customRouteLocator(RouteLocatorBuilder builder, JwtRequestFilter jwtRequestFilter) {
         String authserver="http://localhost:8083/";
         return builder.routes()
                 .route("path_route",  r-> r.path("/test")
@@ -46,6 +47,7 @@ public class Gw2Application {
                 .route("auth",  r-> r.path("/auth/**")
                         .filters(f -> f
                                 .rewritePath("/auth/(?<segment>.*)", "/auth/${segment}")
+                                //.filter(jwtRequestFilter.apply(new JwtRequestFilter.Config("dummy", true, true)))
                                 .hystrix(config -> config
                                 .setName("fallbackpoint")
                                 .setFallbackUri("forward:/fallback")))

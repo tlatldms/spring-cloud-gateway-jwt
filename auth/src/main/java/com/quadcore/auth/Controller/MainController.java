@@ -5,12 +5,15 @@ import com.quadcore.auth.Domain.Token;
 import com.quadcore.auth.Repository.AccountRepository;
 import com.quadcore.auth.jwt.JwtGenerator;
 import com.quadcore.auth.service.JwtUserDetailsService;
+import io.jsonwebtoken.ExpiredJwtException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -18,6 +21,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -48,27 +52,23 @@ public class MainController {
         return "TEST";
     }
 
+
+
     @PostMapping(path="/auth/register")
     public Map<String, Object> addNewUser (@RequestBody Account account) {
         String un = account.getUsername();
         Map<String, Object> map = new HashMap<>();
         System.out.println("회원가입요청 아이디: "+un + "비번: " + account.getPassword());
-        if (accountRepository.findByUsername(un) == null) {
-            account.setUsername(un);
-            account.setEmail(account.getEmail());
-            if (un.equals("admin")) {
-                account.setRole("ROLE_ADMIN");
-            } else {
-                account.setRole("ROLE_USER");
-            }
-            account.setPassword(bcryptEncoder.encode(account.getPassword()));
-            map.put("success", true);
-            accountRepository.save(account);
-            return map;
+        account.setUsername(un);
+        account.setEmail(account.getEmail());
+        if (un.equals("admin")) {
+            account.setRole("ROLE_ADMIN");
         } else {
-            map.put("success", false);
-            map.put("message", "duplicated username");
+            account.setRole("ROLE_USER");
         }
+        account.setPassword(bcryptEncoder.encode(account.getPassword()));
+        map.put("errorCode", 10);
+        accountRepository.save(account);
         return map;
     }
 
@@ -77,13 +77,9 @@ public class MainController {
         Map<String, Object> map = new HashMap<>();
         final String username = m.get("username");
         logger.info("test input username: " + username);
-        try {
-            am.authenticate(new UsernamePasswordAuthenticationToken(username, m.get("password")));
-        } catch (Exception e){
-            logger.warn("Error: " + e);
-            map.put("success", false);
-            return map;
-        }
+
+        am.authenticate(new UsernamePasswordAuthenticationToken(username, m.get("password")));
+
 
         final UserDetails userDetails = userDetailsService.loadUserByUsername(username);
         final String accessToken = jwtGenerator.generateAccessToken(userDetails);
@@ -99,12 +95,77 @@ public class MainController {
 
         logger.info("generated access token: " + accessToken);
         logger.info("generated refresh token: " + refreshToken);
-        map.put("success", true);
+        map.put("errorCode", 10);
         map.put("accessToken", accessToken);
         map.put("refreshToken", refreshToken);
         return map;
     }
 
+
+    @PostMapping(path="/auth/checkemail")
+    public Map<String, Object>  checkEmail (@RequestBody Map<String, String> m) {
+        Map<String, Object> map = new HashMap<>();
+        System.out.println("이메일체크 요청 이메일: " + m.get("email"));
+        if (accountRepository.findByEmail(m.get("email")) == null) {
+            map.put("errorCode", 10);
+        }
+        else map.put("errorCode", 53);
+        return map;
+    }
+
+/*
+    @PostMapping(path="/auth/refresh")
+    public Map<String, Object>  requestForNewAccessToken(@RequestBody Map<String, String> m) {
+        String accessToken = null;
+        String refreshToken = null;
+        String refreshTokenFromDb = null;
+        String username = null;
+        Map<String, Object> map = new HashMap<>();
+        try {
+            accessToken = m.get("accessToken");
+            refreshToken = m.get("refreshToken");
+            logger.info("access token in rnat: " + accessToken);
+            try {
+                username = jwtGenerator.getUsernameFromToken(accessToken);
+            } catch (IllegalArgumentException e) {
+
+            } catch (ExpiredJwtException e) { //expire됐을 때
+                username = e.getClaims().getSubject();
+                logger.info("username from expired access token: " + username);
+            }
+
+            if (refreshToken != null) { //refresh를 같이 보냈으면.
+                try {
+                    ValueOperations<String, Object> vop = redisTemplate.opsForValue();
+                    Token result = (Token) vop.get(username);
+                    refreshTokenFromDb = result.getRefreshToken();
+                    logger.info("rtfrom db: " + refreshTokenFromDb);
+                } catch (IllegalArgumentException e) {
+                    logger.warn("illegal argument!!");
+                }
+                //둘이 일치하고 만료도 안됐으면 재발급 해주기.
+                if (refreshToken.equals(refreshTokenFromDb) && !jwtTokenUtil.isTokenExpired(refreshToken)) {
+                    final UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                    String newtok =  jwtTokenUtil.generateAccessToken(userDetails);
+                    map.put("success", true);
+                    map.put("accessToken", newtok);
+                } else {
+                    map.put("success", false);
+                    map.put("msg", "refresh token is expired.");
+                }
+            } else { //refresh token이 없으면
+                map.put("success", false);
+                map.put("msg", "your refresh token does not exist.");
+            }
+
+        } catch (Exception e) {
+            throw e;
+        }
+        logger.info("m: " + m);
+
+        return map;
+    }
+*/
 
     /*
     @Transactional
@@ -205,64 +266,7 @@ public class MainController {
     }
 
 
+     */
 
-    @PostMapping(path="/newuser/checkemail")
-    public boolean checkEmail (@RequestBody Map<String, String> m) {
-        System.out.println("이메일체크 요청 이메일: " + m.get("email"));
-        if (accountRepository.findByEmail(m.get("email")) == null) return true;
-        else return false;
-    }
 
-    @PostMapping(path="/newuser/refresh")
-    public Map<String, Object>  requestForNewAccessToken(@RequestBody Map<String, String> m) {
-        String accessToken = null;
-        String refreshToken = null;
-        String refreshTokenFromDb = null;
-        String username = null;
-        Map<String, Object> map = new HashMap<>();
-        try {
-            accessToken = m.get("accessToken");
-            refreshToken = m.get("refreshToken");
-            logger.info("access token in rnat: " + accessToken);
-            try {
-                username = jwtTokenUtil.getUsernameFromToken(accessToken);
-            } catch (IllegalArgumentException e) {
-
-            } catch (ExpiredJwtException e) { //expire됐을 때
-                username = e.getClaims().getSubject();
-                logger.info("username from expired access token: " + username);
-            }
-
-            if (refreshToken != null) { //refresh를 같이 보냈으면.
-                try {
-                    ValueOperations<String, Object> vop = redisTemplate.opsForValue();
-                    Token result = (Token) vop.get(username);
-                    refreshTokenFromDb = result.getRefreshToken();
-                    logger.info("rtfrom db: " + refreshTokenFromDb);
-                } catch (IllegalArgumentException e) {
-                    logger.warn("illegal argument!!");
-                }
-                //둘이 일치하고 만료도 안됐으면 재발급 해주기.
-                if (refreshToken.equals(refreshTokenFromDb) && !jwtTokenUtil.isTokenExpired(refreshToken)) {
-                    final UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                    String newtok =  jwtTokenUtil.generateAccessToken(userDetails);
-                    map.put("success", true);
-                    map.put("accessToken", newtok);
-                } else {
-                    map.put("success", false);
-                    map.put("msg", "refresh token is expired.");
-                }
-            } else { //refresh token이 없으면
-                map.put("success", false);
-                map.put("msg", "your refresh token does not exist.");
-            }
-
-        } catch (Exception e) {
-            throw e;
-        }
-        logger.info("m: " + m);
-
-        return map;
-    }
-    */
 }

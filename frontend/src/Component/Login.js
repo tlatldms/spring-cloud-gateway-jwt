@@ -101,12 +101,17 @@ class Login extends Component {
         )
             .then(res => {
                 console.log(res);
-                cookie.save('access-token', res.data.accessToken, { path: '/' })
-                cookie.save('refresh-token', res.data.refreshToken, { path: '/' })
-                //window.location.reload();
+                if (res.data.errorCode == 10) {
+                    cookie.save('access-token', res.data.accessToken, { path: '/' })
+                    cookie.save('refresh-token', res.data.refreshToken, { path: '/' })
+                    //window.location.reload();
+                } else {
+                    alert("로그인불가능");
+                }      
             }
             ).catch(e => {
                 console.log(e);
+                alert("로그인불가능");
             })
     }
 
