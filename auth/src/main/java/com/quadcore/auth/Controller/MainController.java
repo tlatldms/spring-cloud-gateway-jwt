@@ -21,9 +21,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import javax.transaction.Transactional;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 
 @RestController
@@ -147,107 +149,57 @@ public class MainController {
         return map;
     }
 
+    @GetMapping(path="/user/normal")
+    public Map<String, Object> onlyNormal() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("errorCode", 10);
+        return map;
+    }
 
-    /*
     @Transactional
     @PostMapping(path="/admin/deleteuser")
-    public void deleteUser (@RequestBody Map<String, String> m) {
+    public Map<String, Object> deleteUser (@RequestBody Map<String, String> m) {
+        Map<String, Object> map = new HashMap<>();
         logger.info("delete user: " + m.get("username"));
         Long result = accountRepository.deleteByUsername(m.get("username"));
         logger.info("delete result: " + result);
+        map.put("errorCode", 10);
+        return map;
     }
 
     @GetMapping(path="/admin/getusers")
-    public Iterable<Account> getAllUsers() {
-        return accountRepository.findAll();
+    public Map<String, Object> getAllUsers() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("errorCode", 10);
+        map.put("users",  accountRepository.findAll());
+        logger.info("users: " + map);
+        return map;
     }
 
-    @GetMapping(path="/user/normal")
-    public ResponseEntity<?> onlyNormal() {
-        return new ResponseEntity(HttpStatus.OK);
-    }
-
-
-    @PostMapping(path="/newuser/out")
-    public ResponseEntity<?> logout(@RequestBody Map<String, String> m) {
-        String username = null;
+    @PostMapping(path="/user/out")
+    public Map<String, Object> logout(@RequestBody Map<String, String> m) {
+        Map<String, Object> map = new HashMap<>();
         String accessToken = m.get("accessToken");
-        try {
-            username = jwtTokenUtil.getUsernameFromToken(accessToken);
-        } catch (IllegalArgumentException e) {} catch (ExpiredJwtException e) { //expire됐을 때
-            username = e.getClaims().getSubject();
-            logger.info("username from expired access token: " + username);
-        }
-
-        try {
-            if (redisTemplate.opsForValue().get(username) != null) {
-                //delete refresh token
-                redisTemplate.delete(username);
-            }
-        } catch (IllegalArgumentException e) {
-            logger.warn("user does not exist");
-        }
-
+        String username = jwtGenerator.getUsernameFromToken(accessToken);
+        redisTemplate.delete(username);
         //cache logout token for 10 minutes!
         logger.info(" logout ing : " + accessToken);
         redisTemplate.opsForValue().set(accessToken, true);
         redisTemplate.expire(accessToken, 10*6*1000, TimeUnit.MILLISECONDS);
-
-        return new ResponseEntity(HttpStatus.OK);
-    }
-
-    @PostMapping(path="/authcheck")
-    public Map<String, Object> checker(@RequestBody Map<String, String> m) {
-        String username = null;
-        Map<String, Object> map = new HashMap<>();
-        try {
-            username = jwtTokenUtil.getUsernameFromToken(m.get("accessToken"));
-        } catch (IllegalArgumentException e) {
-            logger.warn("Unable to get JWT Token");
-        }
-        catch (ExpiredJwtException e) {
-        }
-
-        if (username != null) {
-            map.put("success", true);
-            map.put("username", username);
-        } else {
-            map.put("success", false);
-        }
-        return map;
-    }
-    @PostMapping(path = "/newuser/login")
-    public Map<String, Object> login(@RequestBody Map<String, String> m) throws Exception {
-        final String username = m.get("username");
-        logger.info("test input username: " + username);
-        try {
-            am.authenticate(new UsernamePasswordAuthenticationToken(username, m.get("password")));
-        } catch (Exception e){
-            throw e;
-        }
-
-        final UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-        final String accessToken = jwtTokenUtil.generateAccessToken(userDetails);
-        final String refreshToken = jwtTokenUtil.generateRefreshToken(username);
-
-        Token retok = new Token();
-        retok.setUsername(username);
-        retok.setRefreshToken(refreshToken);
-
-        //generate Token and save in redis
-        ValueOperations<String, Object> vop = redisTemplate.opsForValue();
-        vop.set(username, retok);
-
-        logger.info("generated access token: " + accessToken);
-        logger.info("generated refresh token: " + refreshToken);
-        Map<String, Object> map = new HashMap<>();
-        map.put("accessToken", accessToken);
-        map.put("refreshToken", refreshToken);
+        map.put("errorCode", 10);
         return map;
     }
 
 
-     */
+    @PostMapping(path="/auth/name")
+    public Map<String, Object> checker(@RequestBody Map<String, Object> m) {
+        Map<String, Object> map = new HashMap<>();
+        String username = (String)jwtGenerator.getUserParseInfo((String)m.get("accessToken")).get("username");
+        map.put("errorCode", 10);
+        map.put("username", username);
+        return map;
+    }
+
 
 
 }

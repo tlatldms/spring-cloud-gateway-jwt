@@ -63,13 +63,12 @@ class Login extends Component {
         })
     }
 
-    /*
     componentDidMount(){
-        axios.post("http://localhost:8080/newuser/check", data, {
+        axios.post("http://localhost:8080/auth/name", data, {
             headers: headers
            }).then(res => {
             console.log(res);
-            if (res.data.success) {
+            if (res.data.errorCode == 10) {
                 this.setState({
                     isNormal:true,
                     username : res.data.username
@@ -89,7 +88,6 @@ class Login extends Component {
         })
     }
 
-    */
 
     handleLogin = (e) => {
         e.preventDefault();
@@ -104,7 +102,7 @@ class Login extends Component {
                 if (res.data.errorCode == 10) {
                     cookie.save('access-token', res.data.accessToken, { path: '/' })
                     cookie.save('refresh-token', res.data.refreshToken, { path: '/' })
-                    //window.location.reload();
+                    window.location.reload();
                 } else {
                     alert("로그인불가능");
                 }      

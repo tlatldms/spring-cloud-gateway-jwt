@@ -52,6 +52,20 @@ public class Gw2Application {
                                 .setName("fallbackpoint")
                                 .setFallbackUri("forward:/fallback")))
                         .uri(authserver))
+                .route("user", r->r.path("/user/**")
+                    .filters(f -> f
+                            .rewritePath("/user/(?<segment>.*)", "/user/${segment}")
+                            .filter(jwtRequestFilter.apply(new JwtRequestFilter.Config("ROLE_USER"))
+                    ))
+                        .uri(authserver)
+                )
+                .route("admin", r->r.path("/admin/**")
+                        .filters(f -> f
+                                .rewritePath("/admin/(?<segment>.*)", "/admin/${segment}")
+                                .filter(jwtRequestFilter.apply(new JwtRequestFilter.Config("ROLE_ADMIN"))
+                                ))
+                        .uri(authserver)
+                )
                 .build();
     }
 }

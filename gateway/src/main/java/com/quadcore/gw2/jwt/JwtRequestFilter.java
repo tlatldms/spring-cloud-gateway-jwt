@@ -17,19 +17,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.core.io.buffer.DataBufferFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.server.reactive.ServerHttpResponse;
-import org.springframework.http.server.reactive.ServerHttpResponseDecorator;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
-
+import java.util.*;
 
 
 @Order(-1)
@@ -50,14 +43,17 @@ public class JwtRequestFilter extends
 
 
     public static class Config {
-        private String baseMessage;
-        private boolean preLogger;
-        private boolean postLogger;
+        private String role;
+        //private String baseMessage;
+        //private boolean preLogger;
+        //private boolean postLogger;
 
-        public Config(String baseMessage, boolean preLogger, boolean postLogger) {
-            this.baseMessage = baseMessage;
-            this.preLogger = preLogger;
-            this.postLogger = postLogger;
+        public Config(String role) {
+            this.role = role;
+        }
+
+        public String getRole() {
+            return role;
         }
 
         // contructors, getters and setters...
@@ -77,7 +73,7 @@ public class JwtRequestFilter extends
         @Override
         public Mono<Void> handle(
                 ServerWebExchange exchange, Throwable ex) {
-            logger.warn("EX : " + ex);
+            logger.warn("in GATEWAY Exeptionhandler : " + ex);
             int errorCode = 999;
             if (ex.getClass() == NullPointerException.class) {
                 errorCode = 61;
@@ -85,6 +81,8 @@ public class JwtRequestFilter extends
                 errorCode = 56;
             } else if (ex.getClass() == MalformedJwtException.class || ex.getClass() == SignatureException.class || ex.getClass() == UnsupportedJwtException.class) {
                 errorCode = 55;
+            } else if (ex.getClass() == IllegalArgumentException.class) {
+                errorCode = 51;
             }
 
             byte[] bytes = errorCodeMaker(errorCode).getBytes(StandardCharsets.UTF_8);
@@ -102,10 +100,14 @@ public class JwtRequestFilter extends
     public GatewayFilter apply(Config config) {
         return (exchange, chain) -> {
             String token = exchange.getRequest().getHeaders().get("Authorization").get(0).substring(7);
-
             logger.info("token : " + token);
             Map<String, Object> userInfo = jwtValidator.getUserParseInfo(token);
-            logger.info("Request user info: " + userInfo);
+            logger.info("role of Request user : " + userInfo.get("role"));
+            ArrayList<String> arr = (ArrayList<String>)userInfo.get("role");
+            logger.info("roelsdfsdf: " + userInfo.get("role") + userInfo.get("role").getClass());
+            if ( !arr.contains(config.getRole())) {
+                throw new IllegalArgumentException();
+            }
             return chain.filter(exchange);
         };
 

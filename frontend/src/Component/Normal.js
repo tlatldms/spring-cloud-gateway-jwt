@@ -47,12 +47,12 @@ class Normal extends Component {
         })
     }
     componentDidMount(){
-        axios.get("http://localhost:8080/auth/normal",{
+        axios.get("http://localhost:8080/user/normal",{
             headers: {
                 "Authorization" : "Bearer "+ this.state.accessToken
             }
         }).then(res => {
-            if (res.status == 200) {
+            if (res.data.errorCode == 10) {
                 this.setState({
                     isNormal:true,
                 });

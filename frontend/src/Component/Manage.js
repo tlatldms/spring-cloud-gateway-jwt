@@ -23,10 +23,13 @@ class Manage extends Component {
         axios.get("http://localhost:8080/admin/getusers", {
             headers: headers
         }).then(res => {
-            this.setState({
-                users: res.data,
-                Authorized: true
-            });
+            if (res.data.errorCode == 10) {
+                this.setState({
+                    users: res.data.users,
+                    Authorized: true
+                });
+            }
+            
         }
         ).catch(e => {
             this.setState({

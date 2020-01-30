@@ -88,6 +88,13 @@
             </exclusions>
         </dependency>
 
+        <!-- to resolve java.lang.NoClassDefFoundError: javax/xml/bind/DatatypeConverter -->
+        <dependency>
+            <groupId>javax.xml.bind</groupId>
+            <artifactId>jaxb-api</artifactId>
+            <version>2.3.0</version>
+        </dependency>
+
         <!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-data-redis -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -95,6 +102,7 @@
             <version>2.2.2.RELEASE</version>
         </dependency>
     </dependencies>
+
 
     <build>
         <plugins>

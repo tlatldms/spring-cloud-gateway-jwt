@@ -29,13 +29,16 @@ public class AdviceController {
 
     @ExceptionHandler(BadCredentialsException.class)
     public Map<String, Object> badCredentialEx(Exception e) {
+        logger.warn("BadCredentialsException");
         Map<String, Object> map = new HashMap<>();
         map.put("errorCode", 63);
         return map;
     }
 
-    @ExceptionHandler(MissingServletRequestParameterException.class)
+    @ExceptionHandler({
+            IllegalArgumentException.class, MissingServletRequestParameterException.class})
     public Map<String, Object> paramsEx(Exception e) {
+        logger.warn("params ex: "+ e);
         Map<String, Object> map = new HashMap<>();
         map.put("errorCode", 51);
         return map;
@@ -43,7 +46,7 @@ public class AdviceController {
 
     @ExceptionHandler(NullPointerException.class)
     public Map<String, Object> nullEx(Exception e) {
-        logger.warn("npex" + e.getClass());
+        logger.warn("null ex" + e.getClass());
         Map<String, Object> map = new HashMap<>();
         map.put("errorCode", 61);
         return map;
