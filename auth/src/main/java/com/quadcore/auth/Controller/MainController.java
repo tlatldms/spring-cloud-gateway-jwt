@@ -118,13 +118,20 @@ public class MainController {
 
     @PostMapping(path="/auth/refresh")
     public Map<String, Object>  requestForNewAccessToken(@RequestBody Map<String, String> m) {
-
+        String username = null;
         Map<String, Object> map = new HashMap<>();
         String expiredAccessToken = m.get("accessToken");
         String refreshToken = m.get("refreshToken");
         logger.info("get expired access token: " + expiredAccessToken);
 
-        String username = jwtGenerator.getUsernameFromToken(expiredAccessToken);
+        try {
+            username = jwtGenerator.getUsernameFromToken(expiredAccessToken);
+        } catch (ExpiredJwtException e) {
+            username = e.getClaims().getSubject();
+            logger.info("username from expired access token: " + username);
+        }
+        if (username == null) throw new IllegalArgumentException();
+
         ValueOperations<String, Object> vop = redisTemplate.opsForValue();
         Token result = (Token) vop.get(username);
         String refreshTokenFromDb = result.getRefreshToken();
@@ -191,7 +198,7 @@ public class MainController {
     }
 
 
-    @PostMapping(path="/auth/name")
+    @PostMapping(path="/user/name")
     public Map<String, Object> checker(@RequestBody Map<String, Object> m) {
         Map<String, Object> map = new HashMap<>();
         String username = (String)jwtGenerator.getUserParseInfo((String)m.get("accessToken")).get("username");

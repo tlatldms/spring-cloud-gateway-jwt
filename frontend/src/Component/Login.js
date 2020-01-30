@@ -24,13 +24,13 @@ class Login extends Component {
             [e.target.name]: e.target.value,
         })
     }
-
+/*
     requestAccessToken = () => {
-        axios.post("http://localhost:8080/newuser/refresh", {
+        axios.post("http://localhost:8080/user/refresh", {
             accessToken: this.state.accessToken,
             refreshToken: cookie.load('refresh-token')
         }).then(res => {
-            if (res.data.success) {
+            if (res..success) {
                 //console.log("success to refresh token to: " + res.data.accessToken);
                 cookie.save('access-token', res.data.accessToken, { path: '/' })
                 this.setState({
@@ -48,13 +48,14 @@ class Login extends Component {
             console.log(e);
         })
     }
+    */
 
     logout = () => {
         const headers = {
             'Content-Type': 'application/json',
             'Authorization': "Bearer " + cookie.load('access-token')
         };
-        axios.post("http://localhost:8080/newuser/out", data, {
+        axios.post("http://localhost:8080/user/out", data, {
             headers: headers
         }).then(res => {
             window.location.reload();
@@ -64,7 +65,7 @@ class Login extends Component {
     }
 
     componentDidMount(){
-        axios.post("http://localhost:8080/auth/name", data, {
+        axios.post("http://localhost:8080/user/name", data, {
             headers: headers
            }).then(res => {
             console.log(res);
@@ -78,7 +79,7 @@ class Login extends Component {
                     isNormal:false
                 });
                 console.log("cannot validate access token. trying to get new..");
-                this.requestAccessToken();
+                //this.requestAccessToken();
             }
         }).catch(e => {
             this.setState({

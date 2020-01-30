@@ -29,7 +29,7 @@ class Normal extends Component {
             accessToken: this.state.accessToken,
             refreshToken: this.state.refreshToken,
         }).then(res => {
-            if (res.data.success) {
+            if (res.data.errorCode == 10) {
                 //console.log("success to refresh token to: " + res.data.accessToken);
                 cookie.save('access-token', res.data.accessToken, { path: '/' })
                 this.setState({
@@ -56,22 +56,16 @@ class Normal extends Component {
                 this.setState({
                     isNormal:true,
                 });
-            } 
-        }).catch(e => {
-            if (e.response) {
-                if (e.response.status==500) {
-                    this.setState({
-                        isNormal: false
-                    });
-                } else if (e.response.status == 401) {
-                    console.clear();
-                    this.setState({
-                        isNormal: false
-                    });
-                    this.requestAccessToken();
-                }
+            } else if (res.data.errorCode == 56) {
+                this.setState({
+                    isNormal: false
+                });
+                this.requestAccessToken();
             }
-        })
+        }).catch(e => {
+               console.log(e);
+            }
+        )
     }
     render() {
         return (
