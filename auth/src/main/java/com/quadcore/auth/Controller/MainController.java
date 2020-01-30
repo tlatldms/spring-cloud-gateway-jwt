@@ -183,11 +183,18 @@ public class MainController {
         return map;
     }
 
-    @PostMapping(path="/user/out")
+    @PostMapping(path="/auth/out")
     public Map<String, Object> logout(@RequestBody Map<String, String> m) {
         Map<String, Object> map = new HashMap<>();
         String accessToken = m.get("accessToken");
-        String username = jwtGenerator.getUsernameFromToken(accessToken);
+        String username = null;
+        try {
+            username = jwtGenerator.getUsernameFromToken(accessToken);
+        } catch (ExpiredJwtException e) {
+            username = e.getClaims().getSubject();
+            logger.info("in logout: username: " + username);
+        }
+
         redisTemplate.delete(username);
         //cache logout token for 10 minutes!
         logger.info(" logout ing : " + accessToken);
@@ -198,10 +205,18 @@ public class MainController {
     }
 
 
-    @PostMapping(path="/user/name")
-    public Map<String, Object> checker(@RequestBody Map<String, Object> m) {
+    @PostMapping(path="/auth/name")
+    public Map<String, Object> checker(@RequestBody Map<String, String> m) {
         Map<String, Object> map = new HashMap<>();
-        String username = (String)jwtGenerator.getUserParseInfo((String)m.get("accessToken")).get("username");
+        String username = null;
+        String accessToken = m.get("accessToken");
+        try {
+            username = jwtGenerator.getUsernameFromToken(accessToken);
+        } catch (ExpiredJwtException e) {
+            username = e.getClaims().getSubject();
+            logger.info("in logout: username: " + username);
+        }
+
         map.put("errorCode", 10);
         map.put("username", username);
         return map;

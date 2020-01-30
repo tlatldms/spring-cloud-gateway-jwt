@@ -55,17 +55,22 @@ class Login extends Component {
             'Content-Type': 'application/json',
             'Authorization': "Bearer " + cookie.load('access-token')
         };
-        axios.post("http://localhost:8080/user/out", data, {
+        axios.post("http://localhost:8080/auth/out", data, {
             headers: headers
         }).then(res => {
-            window.location.reload();
+            if (res.data.errorCode == 10) {
+                cookie.remove('access-token');
+                cookie.remove('refresh-token');
+                window.location.reload();
+            }
+            
         }).catch(e => {
             console.log(e);
         })
     }
 
     componentDidMount(){
-        axios.post("http://localhost:8080/user/name", data, {
+        axios.post("http://localhost:8080/auth/name", data, {
             headers: headers
            }).then(res => {
             console.log(res);
