@@ -113,59 +113,40 @@ public class MainController {
         return map;
     }
 
-/*
+
     @PostMapping(path="/auth/refresh")
     public Map<String, Object>  requestForNewAccessToken(@RequestBody Map<String, String> m) {
-        String accessToken = null;
-        String refreshToken = null;
-        String refreshTokenFromDb = null;
-        String username = null;
+
         Map<String, Object> map = new HashMap<>();
-        try {
-            accessToken = m.get("accessToken");
-            refreshToken = m.get("refreshToken");
-            logger.info("access token in rnat: " + accessToken);
-            try {
-                username = jwtGenerator.getUsernameFromToken(accessToken);
-            } catch (IllegalArgumentException e) {
+        String expiredAccessToken = m.get("accessToken");
+        String refreshToken = m.get("refreshToken");
+        logger.info("get expired access token: " + expiredAccessToken);
 
-            } catch (ExpiredJwtException e) { //expire됐을 때
-                username = e.getClaims().getSubject();
-                logger.info("username from expired access token: " + username);
-            }
+        String username = jwtGenerator.getUsernameFromToken(expiredAccessToken);
+        ValueOperations<String, Object> vop = redisTemplate.opsForValue();
+        Token result = (Token) vop.get(username);
+        String refreshTokenFromDb = result.getRefreshToken();
+        logger.info("rtfrom db: " + refreshTokenFromDb);
 
-            if (refreshToken != null) { //refresh를 같이 보냈으면.
-                try {
-                    ValueOperations<String, Object> vop = redisTemplate.opsForValue();
-                    Token result = (Token) vop.get(username);
-                    refreshTokenFromDb = result.getRefreshToken();
-                    logger.info("rtfrom db: " + refreshTokenFromDb);
-                } catch (IllegalArgumentException e) {
-                    logger.warn("illegal argument!!");
-                }
-                //둘이 일치하고 만료도 안됐으면 재발급 해주기.
-                if (refreshToken.equals(refreshTokenFromDb) && !jwtTokenUtil.isTokenExpired(refreshToken)) {
-                    final UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                    String newtok =  jwtTokenUtil.generateAccessToken(userDetails);
-                    map.put("success", true);
-                    map.put("accessToken", newtok);
-                } else {
-                    map.put("success", false);
-                    map.put("msg", "refresh token is expired.");
-                }
-            } else { //refresh token이 없으면
-                map.put("success", false);
-                map.put("msg", "your refresh token does not exist.");
-            }
-
-        } catch (Exception e) {
-            throw e;
+        //user refresh token doesnt match with cache
+        if (!refreshToken.equals(refreshTokenFromDb)) {
+            map.put("errorCode", 58);
+            return map;
         }
-        logger.info("m: " + m);
 
+        //refresh token is expired
+        if (jwtGenerator.isTokenExpired(refreshToken)) {
+            map.put("errorCode", 57);
+        }
+
+        //generate access token if valid refresh token
+        final UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+        String newAccessToken =  jwtGenerator.generateAccessToken(userDetails);
+        map.put("errorCode", 10);
+        map.put("accessToken", newAccessToken);
         return map;
     }
-*/
+
 
     /*
     @Transactional
