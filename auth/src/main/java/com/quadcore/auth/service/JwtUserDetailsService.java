@@ -1,7 +1,7 @@
 package com.quadcore.auth.service;
 
-import com.quadcore.auth.Domain.Account;
-import com.quadcore.auth.Repository.AccountRepository;
+import com.quadcore.auth.Domain.Member;
+import com.quadcore.auth.Repository.MemberRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -18,25 +18,25 @@ import java.util.List;
 public class JwtUserDetailsService implements UserDetailsService {
 
     @Autowired
-    private AccountRepository repository;
+    private MemberRepository repository;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Account account = repository.findByUsername(username);
+        Member member = repository.findByUsername(username);
 
         List<GrantedAuthority> roles = new ArrayList<>();
 
-        if (account == null) {
+        if (member == null) {
             throw new UsernameNotFoundException("User not found with username: " + username);
         }
-        if ((account.getRole()).equals("ROLE_ADMIN")) {
+        if (member.getGrade() == 0) {
             roles.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
             roles.add(new SimpleGrantedAuthority("ROLE_USER"));
         } else {
             roles.add(new SimpleGrantedAuthority("ROLE_USER"));
             roles.add(new SimpleGrantedAuthority("ROLE_HI"));
         }
-        return new User(account.getUsername(), account.getPassword(), roles);
+        return new User(member.getUsername(), member.getPassword(), roles);
     }
 
 }

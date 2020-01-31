@@ -24,8 +24,6 @@ import reactor.core.publisher.Mono;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-
-@Order(-1)
 @Component
 public class JwtRequestFilter extends
         AbstractGatewayFilterFactory<JwtRequestFilter.Config> implements Ordered {
@@ -41,23 +39,16 @@ public class JwtRequestFilter extends
         return -2; // -1 is response write filter, must be called before that
     }
 
-
     public static class Config {
         private String role;
-        //private String baseMessage;
-        //private boolean preLogger;
-        //private boolean postLogger;
-
         public Config(String role) {
             this.role = role;
         }
-
         public String getRole() {
             return role;
         }
-
-        // contructors, getters and setters...
     }
+
 
 
     @Bean
@@ -110,6 +101,5 @@ public class JwtRequestFilter extends
             }
             return chain.filter(exchange);
         };
-
     }
 }

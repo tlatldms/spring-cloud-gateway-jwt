@@ -1,8 +1,9 @@
 package com.quadcore.auth.Controller;
 
-import com.quadcore.auth.Domain.Account;
+import com.quadcore.auth.Domain.Member;
+import com.quadcore.auth.Domain.Member;
 import com.quadcore.auth.Domain.Token;
-import com.quadcore.auth.Repository.AccountRepository;
+import com.quadcore.auth.Repository.MemberRepository;
 import com.quadcore.auth.jwt.JwtGenerator;
 import com.quadcore.auth.service.JwtUserDetailsService;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.transaction.Transactional;
 import java.sql.SQLIntegrityConstraintViolationException;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -33,7 +35,7 @@ import java.util.concurrent.TimeUnit;
 public class MainController {
     private Logger logger = LoggerFactory.getLogger(ApplicationRunner.class);
     @Autowired
-    private AccountRepository accountRepository;
+    private MemberRepository memberRepository;
     @Autowired
     RedisTemplate<String, Object> redisTemplate;
 
@@ -54,23 +56,21 @@ public class MainController {
         return "TEST";
     }
 
-
-
     @PostMapping(path="/auth/register")
-    public Map<String, Object> addNewUser (@RequestBody Account account) {
-        String un = account.getUsername();
+    public Map<String, Object> addNewUser (@RequestBody Member member) {
+        String un = member.getUsername();
         Map<String, Object> map = new HashMap<>();
-        System.out.println("회원가입요청 아이디: "+un + "비번: " + account.getPassword());
-        account.setUsername(un);
-        account.setEmail(account.getEmail());
+        System.out.println("회원가입요청 아이디: "+un + "비번: " + member.getPassword());
+        member.setUsername(un);
+        member.setEmail(member.getEmail());
         if (un.equals("admin")) {
-            account.setRole("ROLE_ADMIN");
+            member.setGrade(0);
         } else {
-            account.setRole("ROLE_USER");
+            member.setGrade(1);
         }
-        account.setPassword(bcryptEncoder.encode(account.getPassword()));
+        member.setPassword(bcryptEncoder.encode(member.getPassword()));
         map.put("errorCode", 10);
-        accountRepository.save(account);
+        memberRepository.save(member);
         return map;
     }
 
@@ -80,8 +80,10 @@ public class MainController {
         final String username = m.get("username");
         logger.info("test input username: " + username);
 
+        Member member = memberRepository.findByUsername(username);
+        member.setAccess_dt(new Date());
+        memberRepository.save(member);
         am.authenticate(new UsernamePasswordAuthenticationToken(username, m.get("password")));
-
 
         final UserDetails userDetails = userDetailsService.loadUserByUsername(username);
         final String accessToken = jwtGenerator.generateAccessToken(userDetails);
@@ -108,7 +110,7 @@ public class MainController {
     public Map<String, Object>  checkEmail (@RequestBody Map<String, String> m) {
         Map<String, Object> map = new HashMap<>();
         System.out.println("이메일체크 요청 이메일: " + m.get("email"));
-        if (accountRepository.findByEmail(m.get("email")) == null) {
+        if (memberRepository.findByEmail(m.get("email")) == null) {
             map.put("errorCode", 10);
         }
         else map.put("errorCode", 53);
@@ -169,7 +171,7 @@ public class MainController {
     public Map<String, Object> deleteUser (@RequestBody Map<String, String> m) {
         Map<String, Object> map = new HashMap<>();
         String username = m.get("username");
-        Long result = accountRepository.deleteByUsername(username);
+        Long result = memberRepository.deleteByUsername(username);
         logger.info("delete result: " + result);
 
         redisTemplate.delete(username);
@@ -183,7 +185,7 @@ public class MainController {
     public Map<String, Object> getAllUsers() {
         Map<String, Object> map = new HashMap<>();
         map.put("errorCode", 10);
-        map.put("users",  accountRepository.findAll());
+        map.put("users",  memberRepository.findAll());
         logger.info("users: " + map);
         return map;
     }
@@ -226,7 +228,4 @@ public class MainController {
         map.put("username", username);
         return map;
     }
-
-
-
 }
