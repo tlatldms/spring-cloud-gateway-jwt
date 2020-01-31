@@ -1,18 +1,24 @@
 package com.quadcore.auth.Domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.experimental.Delegate;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.validator.constraints.Length;
+import org.springframework.data.redis.core.RedisHash;
 
 import javax.persistence.*;
-import javax.validation.constraints.Size;
+import java.io.Serializable;
 import java.util.Date;
 
 @Data
 @Entity
-public class Member {
+public class Member implements Serializable {
+
+    private static final long serialVersionUID = -7353484588260422449L;
+
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
@@ -35,4 +41,10 @@ public class Member {
     private Date access_dt;
 
     private int grade;
+
+    /*
+    @Column(columnDefinition = "integer default 0")
+    private int email_status;
+    */
 }
+

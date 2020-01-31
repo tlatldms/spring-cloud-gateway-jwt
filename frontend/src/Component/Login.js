@@ -49,6 +49,18 @@ class Login extends Component {
         })
     }
     */
+    findpw = () => {
+       
+        axios.post("http://localhost:8080/auth/getpwmail", {
+            username : this.state.username
+        }).then(res => {
+            if (res.data.errorCode == 10) {
+                alert("이메일을 확인해주세요");
+            }
+        }).catch(e => {
+            console.log(e);
+        })   
+    }
 
     logout = () => {
         const headers = {
@@ -131,6 +143,7 @@ class Login extends Component {
                 <button onClick={this.logout}> 로그아웃</button>
                     </div>
                     :
+                    <div>
                     <form onSubmit={this.handleLogin}>
                         Username
                     <input
@@ -148,8 +161,10 @@ class Login extends Component {
                         />
                         <div><button type="submit" >로그인하기</button></div>
                     </form>
-
+                        <div><button onClick={this.findpw} >비밀번호 변경하기</button></div>
+                        </div>
                 }
+                
             </React.Fragment>
         )
     }

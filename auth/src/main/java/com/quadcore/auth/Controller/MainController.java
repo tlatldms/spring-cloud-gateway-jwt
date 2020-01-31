@@ -1,8 +1,7 @@
 package com.quadcore.auth.Controller;
 
 import com.quadcore.auth.Domain.Member;
-import com.quadcore.auth.Domain.Member;
-import com.quadcore.auth.Domain.Token;
+
 import com.quadcore.auth.Repository.MemberRepository;
 import com.quadcore.auth.jwt.JwtGenerator;
 import com.quadcore.auth.service.JwtUserDetailsService;
@@ -12,9 +11,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.authentication.AuthenticationManager;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,11 +22,16 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+
 import javax.transaction.Transactional;
-import java.sql.SQLIntegrityConstraintViolationException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 
@@ -36,8 +41,12 @@ public class MainController {
     private Logger logger = LoggerFactory.getLogger(ApplicationRunner.class);
     @Autowired
     private MemberRepository memberRepository;
+
     @Autowired
-    RedisTemplate<String, Object> redisTemplate;
+    RedisTemplate<String, Object> memberRedisTemplate;
+
+    @Autowired
+    StringRedisTemplate stringRedisTemplate;
 
     @Autowired
     private JwtUserDetailsService userDetailsService;
@@ -56,21 +65,136 @@ public class MainController {
         return "TEST";
     }
 
+    @Autowired
+    public JavaMailSenderImpl javaMailSender;
+
+
+    public String getSHA512Token(String passwordToHash, String salt){
+        String generatedPassword = null;
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-512");
+            md.update(salt.getBytes(StandardCharsets.UTF_8));
+            byte[] bytes = md.digest(passwordToHash.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for(int i=0; i< bytes.length ;i++){
+                sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
+            }
+            generatedPassword = sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        return generatedPassword;
+    }
+
+    @Async
+    public void sendMail(String email, String username, int type) throws Exception {
+        MimeMessage message = javaMailSender.createMimeMessage();
+        message.addRecipient(Message.RecipientType.TO, new InternetAddress(email));
+        message.setSubject("[본인인증] quadcore 이메일 인증");
+        int rand = new Random().nextInt(999999);
+        String formatted = String.format("%06d",rand);
+        String hash = getSHA512Token(username, formatted);
+        String redisKey = null;
+        String htmlStr = null;
+        if (type == 0) {
+            redisKey = "email-" + username;
+            stringRedisTemplate.opsForValue().set(redisKey, hash);
+            htmlStr = "안녕하세요 " + username + "님. 인증하기를 눌러주세요"
+                    + "<a href='http://localhost:8080" + "/auth/verify?username="+ username +"&key="+hash+"'>인증하기</a></p>";
+        } else if (type == 1) {
+            redisKey = "changepw-" + username;
+            stringRedisTemplate.opsForValue().set(redisKey, hash);
+            htmlStr ="안녕하세요 " + username + "님. 비밀번호 변경하를 눌러주세요"
+                    + "<a href='http://localhost:8080" + "/auth/vfpwemail?username="+ username +"&key="+hash+"'>비밀번호 변경하기</a></p>";
+        }
+        stringRedisTemplate.expire(redisKey, 10*24*1000, TimeUnit.MILLISECONDS); // for one day
+
+        message.setText(htmlStr, "UTF-8", "html");
+        javaMailSender.send(message);
+    }
+
+    @GetMapping(path="/auth/verify")
+    public Map<String, Integer> verifyEmail(@RequestParam("username") String username, @RequestParam("key") String hash) {
+        Map<String, Integer> m = new HashMap<>();
+
+        logger.info("redis get : " + stringRedisTemplate.opsForValue().get("email-"+username));
+        logger.info("hash : " + hash);
+        if (stringRedisTemplate.opsForValue().get("email-"+username).equals(hash)) {
+            ValueOperations<String, Object> memvop = memberRedisTemplate.opsForValue();
+            Member member = (Member) memvop.get("toverify-"+username);
+            memberRepository.save(member);
+            stringRedisTemplate.delete("email-"+username);
+            memberRedisTemplate.delete("toverify-"+username);
+            m.put("errorCode", 10);
+        } else m.put("errorCode", 70);
+        return m;
+    }
+
+    //verify email to set new password
+    @GetMapping(path="/auth/vfpwemail")
+    public Map<String, Integer> changePassword(@RequestParam("username") String username, @RequestParam("key") String hash) {
+        Map<String, Integer> m = new HashMap<>();
+        logger.info("redis get : " + stringRedisTemplate.opsForValue().get("changepw-"+username));
+        logger.info("hash : " + hash);
+        if (stringRedisTemplate.opsForValue().get("changepw-"+username).equals(hash)) {
+            stringRedisTemplate.delete("changepw-"+username);
+            m.put("errorCode", 10);
+            //redirect to password setting page
+        } else m.put("errorCode", 73);
+        return m;
+    }
+
+    //send email to authorize user
+    @PostMapping(path="/auth/getpwmail")
+    public Map<String, Integer> findPassword(@RequestBody Map<String, String> m) {
+        Map<String, Integer> map = new HashMap<>();
+        String username = m.get("username");
+        String email = memberRepository.findByUsername(username).getEmail();
+        try {
+            sendMail("tlatldms@naver.com", username, 1);
+        } catch(MessagingException e) {
+            logger.warn("email err: "+e);
+            map.put("errorCode", 68);
+            return map;
+        } catch (Exception e) {
+            logger.warn("email err: "+e);
+            map.put("errorCode", 66);
+            return map;
+        }
+
+        return map;
+    }
+
+
     @PostMapping(path="/auth/register")
     public Map<String, Object> addNewUser (@RequestBody Member member) {
-        String un = member.getUsername();
+        String username = member.getUsername();
         Map<String, Object> map = new HashMap<>();
-        System.out.println("회원가입요청 아이디: "+un + "비번: " + member.getPassword());
-        member.setUsername(un);
+        System.out.println("회원가입요청 아이디: "+username + "비번: " + member.getPassword());
+        member.setUsername(username);
+        member.setId((long) 325);
         member.setEmail(member.getEmail());
-        if (un.equals("admin")) {
+        //member.setEmail_status(0);
+        if (username.equals("admin")) {
             member.setGrade(0);
         } else {
             member.setGrade(1);
         }
+        try {
+            sendMail("tlatldms@naver.com", username, 0);
+        } catch(MessagingException e) {
+            map.put("errorCode", 68);
+            return map;
+        } catch (Exception e) {
+            map.put("errorCode", 66);
+            return map;
+        }
+
         member.setPassword(bcryptEncoder.encode(member.getPassword()));
         map.put("errorCode", 10);
-        memberRepository.save(member);
+        ValueOperations<String, Object> vop = memberRedisTemplate.opsForValue();
+        vop.set("toverify-"+username, member);
+
         return map;
     }
 
@@ -81,6 +205,13 @@ public class MainController {
         logger.info("test input username: " + username);
 
         Member member = memberRepository.findByUsername(username);
+
+        if (stringRedisTemplate.opsForValue().get("email-"+username) != null) {
+            map.put("errorCode", 69);
+            return map;
+        }
+
+
         member.setAccess_dt(new Date());
         memberRepository.save(member);
         am.authenticate(new UsernamePasswordAuthenticationToken(username, m.get("password")));
@@ -89,13 +220,8 @@ public class MainController {
         final String accessToken = jwtGenerator.generateAccessToken(userDetails);
         final String refreshToken = jwtGenerator.generateRefreshToken(username);
 
-        Token retok = new Token();
-        retok.setUsername(username);
-        retok.setRefreshToken(refreshToken);
-
         //generate Token and save in redis
-        ValueOperations<String, Object> vop = redisTemplate.opsForValue();
-        vop.set(username, retok);
+        stringRedisTemplate.opsForValue().set("refresh-" + username, refreshToken);
 
         logger.info("generated access token: " + accessToken);
         logger.info("generated refresh token: " + refreshToken);
@@ -134,9 +260,8 @@ public class MainController {
         }
         if (username == null) throw new IllegalArgumentException();
 
-        ValueOperations<String, Object> vop = redisTemplate.opsForValue();
-        Token result = (Token) vop.get(username);
-        String refreshTokenFromDb = result.getRefreshToken();
+
+        String refreshTokenFromDb = stringRedisTemplate.opsForValue().get("refresh-"+username);
         logger.info("rtfrom db: " + refreshTokenFromDb);
 
         //user refresh token doesnt match with cache
@@ -174,7 +299,7 @@ public class MainController {
         Long result = memberRepository.deleteByUsername(username);
         logger.info("delete result: " + result);
 
-        redisTemplate.delete(username);
+        stringRedisTemplate.delete("refresh-"+ username);
         map.put("errorCode", 10);
         return map;
     }
@@ -202,11 +327,11 @@ public class MainController {
             logger.info("in logout: username: " + username);
         }
 
-        redisTemplate.delete(username);
+        stringRedisTemplate.delete("refresh-" + username);
         //cache logout token for 10 minutes!
         logger.info(" logout ing : " + accessToken);
-        redisTemplate.opsForValue().set(accessToken, true);
-        redisTemplate.expire(accessToken, 10*6*1000, TimeUnit.MILLISECONDS);
+        stringRedisTemplate.opsForValue().set(accessToken, "true");
+        stringRedisTemplate.expire(accessToken, 10*6*1000, TimeUnit.MILLISECONDS);
         map.put("errorCode", 10);
         return map;
     }
