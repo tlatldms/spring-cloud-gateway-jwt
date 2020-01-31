@@ -6,6 +6,7 @@ target/
 
 ### Password ###
 src/main/resources/application.properties
+application.properties
 
 ### STS ###
 .apt_generated
