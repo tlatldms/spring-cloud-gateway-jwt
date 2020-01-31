@@ -151,7 +151,7 @@ public class MainController {
         String username = m.get("username");
         String email = memberRepository.findByUsername(username).getEmail();
         try {
-            sendMail("tlatldms@naver.com", username, 1);
+            sendMail(email, username, 1);
         } catch(MessagingException e) {
             logger.warn("email err: "+e);
             map.put("errorCode", 68);
@@ -181,7 +181,7 @@ public class MainController {
             member.setGrade(1);
         }
         try {
-            sendMail("tlatldms@naver.com", username, 0);
+            sendMail(member.getEmail(), username, 0);
         } catch(MessagingException e) {
             map.put("errorCode", 68);
             return map;
