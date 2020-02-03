@@ -27,8 +27,9 @@ public class FollowController {
 
     @PostMapping(path = "/follow/add")
     public Map<String, Object> follow(@RequestBody Map<String, String> m) {
-        String member = m.get("member");
-        String tweetMember = m.get("tweetMember");
+
+        String member = m.get("username");
+        String tweetMember = m.get("tweetUsername");
         logger.info(member + tweetMember);
         memberService.updateTweetMembers(member, tweetMember);
         Map<String, Object> map = new HashMap<>();
@@ -37,11 +38,10 @@ public class FollowController {
     }
 
 
-    @PostMapping(path="/follow/getalll")
-    public Object getall(@RequestBody Map<String, String> m) {
-        String member = m.get("member");
+    @GetMapping(path="/follow/flist/{username}")
+    public ArrayList<String> getall(@PathVariable("username") String member) {
         logger.info("member: " + member);
-        return memberService.findMemberByUsername(member);
+        return memberService.findMemberByUsername(member).getTweetMembers();
     }
 
 }
