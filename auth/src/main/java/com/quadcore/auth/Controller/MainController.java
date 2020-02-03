@@ -130,7 +130,17 @@ public class MainController {
             memberRepository.save(member);
             stringRedisTemplate.delete("email-"+username);
             memberRedisTemplate.delete("toverify-"+username);
+
+            ArrayList<String> x = new ArrayList<>();
+            Follow f = new Follow();
+            f.setUsername(username);
+            f.setTweetMembers(x);
+            f.setId(String.valueOf(f.hashCode()));
+            followRepository.save(f);
+
+
             m.put("errorCode", 10);
+
         } else m.put("errorCode", 70);
         return m;
     }
@@ -175,12 +185,6 @@ public class MainController {
     public Map<String, Object> addNewUser (@RequestBody Member member) {
         String username = member.getUsername();
 
-        ArrayList<String> x = new ArrayList<>();
-        Follow f = new Follow();
-        f.setUsername(username);
-        f.setTweetMembers(x);
-        f.setId(String.valueOf(f.hashCode()));
-        followRepository.save(f);
 
 
         Map<String, Object> map = new HashMap<>();

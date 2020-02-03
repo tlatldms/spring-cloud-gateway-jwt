@@ -11,7 +11,7 @@ import java.util.ArrayList;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "test")
+@Document(collection = "follow")
 public class Member {
     @Id
     private String id;

@@ -4,7 +4,8 @@ import NewUser from './NewUser';
 import Header from './Header';
 import Manage from './Manage';
 import Login from './Login';
-import Normal from './Normal'
+import Normal from './Normal';
+import Follow from './Followings';
 
 export default () => (
     <Router>
@@ -14,5 +15,7 @@ export default () => (
       <Route path="/manage" component={Manage} />
       <Route path="/login" component={Login} />
       <Route path="/normal" component={Normal}/>
+      <Route path="/follow" component={Follow}/>
+      
     </Router>
   )

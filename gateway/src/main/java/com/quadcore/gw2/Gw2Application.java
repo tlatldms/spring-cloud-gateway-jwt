@@ -37,7 +37,8 @@ public class Gw2Application {
 
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder, JwtRequestFilter jwtRequestFilter) {
-        String authserver="http://localhost:8083/";
+        String authServer="http://localhost:8083/";
+        String followServer="http://localhost:8086/";
         return builder.routes()
                 .route("path_route",  r-> r.path("/test")
                         .filters(f -> f
@@ -51,20 +52,28 @@ public class Gw2Application {
                                 .hystrix(config -> config
                                 .setName("fallbackpoint")
                                 .setFallbackUri("forward:/fallback")))
-                        .uri(authserver))
+                        .uri(authServer))
+                .route("follow",  r-> r.path("/follow/**")
+                        .filters(f -> f
+                                .rewritePath("/follow/(?<segment>.*)", "/follow/${segment}")
+                                .filter(jwtRequestFilter.apply(new JwtRequestFilter.Config("ROLE_USER")))
+                                .hystrix(config -> config
+                                        .setName("fallbackpoint")
+                                        .setFallbackUri("forward:/fallback")))
+                        .uri(followServer))
                 .route("user", r->r.path("/user/**")
                     .filters(f -> f
                             .rewritePath("/user/(?<segment>.*)", "/user/${segment}")
                             .filter(jwtRequestFilter.apply(new JwtRequestFilter.Config("ROLE_USER"))
                     ))
-                        .uri(authserver)
+                        .uri(authServer)
                 )
                 .route("admin", r->r.path("/admin/**")
                         .filters(f -> f
                                 .rewritePath("/admin/(?<segment>.*)", "/admin/${segment}")
                                 .filter(jwtRequestFilter.apply(new JwtRequestFilter.Config("ROLE_ADMIN"))
                                 ))
-                        .uri(authserver)
+                        .uri(authServer)
                 )
                 .build();
     }

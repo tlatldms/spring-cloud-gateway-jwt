@@ -39,9 +39,13 @@ public class FollowController {
 
 
     @GetMapping(path="/follow/flist/{username}")
-    public ArrayList<String> getall(@PathVariable("username") String member) {
+    public Map<String, Object> getall(@PathVariable("username") String member) {
         logger.info("member: " + member);
-        return memberService.findMemberByUsername(member).getTweetMembers();
+        ArrayList<String> followings =memberService.findMemberByUsername(member).getTweetMembers();
+        Map<String, Object> map = new HashMap<>();
+        map.put("errorCode", 10);
+        map.put("followings", followings);
+        return map;
     }
 
 }
