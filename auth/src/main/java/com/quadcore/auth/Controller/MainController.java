@@ -1,7 +1,9 @@
 package com.quadcore.auth.Controller;
 
+import com.quadcore.auth.Domain.Follow;
 import com.quadcore.auth.Domain.Member;
 
+import com.quadcore.auth.Repository.FollowRepository;
 import com.quadcore.auth.Repository.MemberRepository;
 import com.quadcore.auth.jwt.JwtGenerator;
 import com.quadcore.auth.service.JwtUserDetailsService;
@@ -59,14 +61,14 @@ public class MainController {
     @Autowired
     private PasswordEncoder bcryptEncoder;
 
-    @GetMapping(path="/")
-    public String test() {
-        logger.info("requestrequest");
+    @Autowired
+    FollowRepository followRepository;
+
+    @PostMapping(path="/auth/testing")
+    public String test(@RequestBody Map<String, Object> m) {
+        logger.info("request "+followRepository.findFollowByUsername((String)m.get("username")));
         return "TEST";
     }
-
-    @Autowired
-    public JavaMailSenderImpl javaMailSender;
 
 
     public String getSHA512Token(String passwordToHash, String salt){
@@ -85,6 +87,9 @@ public class MainController {
         }
         return generatedPassword;
     }
+
+    @Autowired
+    public JavaMailSenderImpl javaMailSender;
 
     @Async
     public void sendMail(String email, String username, int type) throws Exception {
@@ -169,6 +174,15 @@ public class MainController {
     @PostMapping(path="/auth/register")
     public Map<String, Object> addNewUser (@RequestBody Member member) {
         String username = member.getUsername();
+
+        ArrayList<String> x = new ArrayList<>();
+        Follow f = new Follow();
+        f.setUsername(username);
+        f.setTweetMembers(x);
+        f.setId(String.valueOf(f.hashCode()));
+        followRepository.save(f);
+
+
         Map<String, Object> map = new HashMap<>();
         System.out.println("회원가입요청 아이디: "+username + "비번: " + member.getPassword());
         member.setUsername(username);
