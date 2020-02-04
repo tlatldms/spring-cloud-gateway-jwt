@@ -11,6 +11,7 @@
     <groupId>com.quadcore</groupId>
     <artifactId>gw2</artifactId>
     <version>0.0.1-SNAPSHOT</version>
+    <packaging>jar</packaging>
     <name>gw2</name>
     <description>Demo project for Spring Boot</description>
 
@@ -109,11 +110,6 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <jvmArguments>
-                        -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005
-                    </jvmArguments>
-                </configuration>
             </plugin>
         </plugins>
     </build>
