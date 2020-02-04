@@ -20,7 +20,7 @@ class Manage extends Component {
     }
     
     componentDidMount(){
-        axios.get("http://localhost:8080/admin/getusers", {
+        axios.get("http://20.41.86.4:8080/admin/getusers", {
             headers: headers
         }).then(res => {
             if (res.data.errorCode == 10) {

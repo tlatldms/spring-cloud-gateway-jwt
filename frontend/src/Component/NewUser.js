@@ -62,7 +62,7 @@ class NewUser extends Component {
         if (!this.state.e) {
             alert("이메일 형식을 확인해주십시오.");
         } else {
-            axios.post("http://localhost:8080/auth/checkemail", 
+            axios.post("http://20.41.86.4:8080/auth/checkemail", 
                 { email: this.state.email}
             )
             .then(res => {
@@ -95,7 +95,7 @@ class NewUser extends Component {
         }
         else {
             */
-            axios.post("http://localhost:8080/auth/register",  {
+            axios.post("http://20.41.86.4:8080/auth/register",  {
                 username: String(this.state.username),
                 email: String(this.state.email),
                 password: String(this.state.password)

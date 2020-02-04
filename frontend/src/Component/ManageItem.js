@@ -22,7 +22,7 @@ class ManageItem extends Component {
         const data = {
             username: this.props.database.username
         }
-        axios.post("http://localhost:8080/admin/deleteuser", data, {
+        axios.post("http://20.41.86.4:8080/admin/deleteuser", data, {
             headers: headers
         }).then(res => {
             if (res.data.errorCode == 10) {

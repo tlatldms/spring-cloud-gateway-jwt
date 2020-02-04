@@ -11,6 +11,7 @@ import io.jsonwebtoken.ExpiredJwtException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -87,6 +88,8 @@ public class MainController {
         }
         return generatedPassword;
     }
+    @Value("${my.ip}")
+    private String myIp;
 
     @Autowired
     public JavaMailSenderImpl javaMailSender;
@@ -105,12 +108,12 @@ public class MainController {
             redisKey = "email-" + username;
             stringRedisTemplate.opsForValue().set(redisKey, hash);
             htmlStr = "안녕하세요 " + username + "님. 인증하기를 눌러주세요"
-                    + "<a href='http://localhost:8080" + "/auth/verify?username="+ username +"&key="+hash+"'>인증하기</a></p>";
+                    + "<a href='http://"+myIp+":8080" + "/auth/verify?username="+ username +"&key="+hash+"'>인증하기</a></p>";
         } else if (type == 1) {
             redisKey = "changepw-" + username;
             stringRedisTemplate.opsForValue().set(redisKey, hash);
             htmlStr ="안녕하세요 " + username + "님. 비밀번호 변경하를 눌러주세요"
-                    + "<a href='http://localhost:8080" + "/auth/vfpwemail?username="+ username +"&key="+hash+"'>비밀번호 변경하기</a></p>";
+                    + "<a href='http://"+myIp+":8080" + "/auth/vfpwemail?username="+ username +"&key="+hash+"'>비밀번호 변경하기</a></p>";
         }
         stringRedisTemplate.expire(redisKey, 10*24*1000, TimeUnit.MILLISECONDS); // for one day
 

@@ -14,7 +14,7 @@ class Normal extends Component {
     }
 
     logout = () => {
-        axios.post("http://localhost:8080/auth/logout", {
+        axios.post("http://20.41.86.4:8080/auth/logout", {
             accessToken: this.state.accessToken,
         }).then(res => {
             console.log(res);
@@ -25,7 +25,7 @@ class Normal extends Component {
     }
 
     requestAccessToken = () => {
-        axios.post("http://localhost:8080/auth/refresh", {
+        axios.post("http://20.41.86.4:8080/auth/refresh", {
             accessToken: this.state.accessToken,
             refreshToken: this.state.refreshToken,
         }).then(res => {
@@ -47,7 +47,7 @@ class Normal extends Component {
         })
     }
     componentDidMount(){
-        axios.get("http://localhost:8080/user/normal",{
+        axios.get("http://20.41.86.4:8080/user/normal",{
             headers: {
                 "Authorization" : "Bearer "+ this.state.accessToken
             }
