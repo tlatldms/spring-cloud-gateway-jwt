@@ -29,7 +29,7 @@ public class FollowController {
 
     }
 
-    @PostMapping(path = "/follow/try")
+    @PostMapping(path = "/follow/add")
     public Map<String, Object> follow(@RequestBody Map<String, String> m) {
         String member = m.get("username");
         String tweetMember = m.get("tweetUsername");

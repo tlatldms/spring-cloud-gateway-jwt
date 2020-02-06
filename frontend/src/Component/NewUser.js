@@ -66,7 +66,7 @@ class NewUser extends Component {
                 { email: this.state.email}
             )
             .then(res => {
-                if (res.data){
+                if (res.data.errorCode == 10){
                     alert("사용 가능한 이메일입니다.");
                     this.setState({
                         checked_email : true 
