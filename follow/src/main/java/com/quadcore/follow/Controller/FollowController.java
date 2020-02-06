@@ -25,9 +25,12 @@ public class FollowController {
     MemberService memberService;
     Logger logger = LoggerFactory.getLogger(FollowController.class);
 
-    @PostMapping(path = "/follow/add")
-    public Map<String, Object> follow(@RequestBody Map<String, String> m) {
+    public void sendMail() {
 
+    }
+
+    @PostMapping(path = "/follow/try")
+    public Map<String, Object> follow(@RequestBody Map<String, String> m) {
         String member = m.get("username");
         String tweetMember = m.get("tweetUsername");
         logger.info(member + tweetMember);
