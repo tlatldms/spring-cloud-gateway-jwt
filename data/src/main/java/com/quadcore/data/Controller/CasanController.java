@@ -65,25 +65,16 @@ public class CasanController {
     }
  */
 
-    @Scheduled(fixedRate = 5000)
+/*
+    @GetMapping(path="/search/{keyword}")
+    public Map<String, Object>
+*/
+
+    @Scheduled(fixedRate = 1000)
     public void greeting() {
         Random rand = new Random();
         System.out.println("rand: " + rand);
-        Message m = new Message() {
-            @Override
-            public Object getPayload() {
-                return null;
-            }
 
-            @Override
-            public MessageHeaders getHeaders() {
-                return null;
-            }
-        };
-         userRegistry.findSubscriptions((s) -> {
-             System.out.println(s);
-             return s.getDestination().equals("aa");
-         });
         messagingTemplate.convertAndSend("/topic/message", "rnad~"+rand);
     }
 
